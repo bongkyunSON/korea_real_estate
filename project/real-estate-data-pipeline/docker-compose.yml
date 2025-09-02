@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  real-estate-airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: real-estate-airflow
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=a-super-secret-key-change-in-production
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+      - PYTHONPATH=/opt/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - airflow-db:/opt/airflow/
+      - airflow-logs:/opt/airflow/logs
+    entrypoint: /bin/bash 
+    command: # bash에게 전달할 명령어 스크립트
+      - -c
+      - |
+        airflow db init &&
+        airflow users create \
+          --username admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com \
+          --password admin &&
+        airflow webserver
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  airflow-logs:
+  airflow-db:
