@@ -6,6 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: real-estate-airflow
+    env_file:  
+      - ./.env 
     ports:
       - "8080:8080"
     environment:
