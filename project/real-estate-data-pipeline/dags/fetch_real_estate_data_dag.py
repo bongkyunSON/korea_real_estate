@@ -26,11 +26,14 @@ def fetch_real_estate_data_dag():
     """
 
     @task
-    def get_target_month(data_interval_start: pendulum.DateTime) -> str:
+    def get_target_month(data_interval_start: str) -> str:
         """
-        Airflow의 실행 시점을 기준으로 '지난달'을 YYYYMM 형식의 문자열로 변환합니다.
+        Airflow가 전달한 날짜 '문자열'을 '날짜 객체'로 변환한 후,
+        '지난달'을 YYYYMM 형식의 문자열로 변환합니다.
         """
-        target_month_str = data_interval_start.strftime("%Y%m")
+        execution_date = pendulum.parse(data_interval_start)
+        
+        target_month_str = execution_date.strftime("%Y%m")
         print(f"이번 작업의 대상 월은 '{target_month_str}' 입니다.")
         return target_month_str
 
@@ -66,7 +69,7 @@ def fetch_real_estate_data_dag():
 
         # --- 2. DB에서 기존 데이터 읽어오기 ---
         try:
-            with engine.connect() as connection:
+            with engine.begin() as connection:
                 query = text(f'SELECT * FROM {DB_SCHEMA}."{table_name}" WHERE "수집월" = :month')
                 existing_df = pd.read_sql(query, connection, params={"month": target_month})
             print(f">> [DB 읽기] 성공. '{target_month}'월의 기존 데이터 {len(existing_df)}건을 찾았습니다.")
@@ -113,7 +116,7 @@ def fetch_real_estate_data_dag():
 
         print(f">> [최종 저장] {len(new_data_df)}건의 새로운 데이터를 DB에 저장합니다.")
         try:
-            with engine.connect() as connection:
+            with engine.begin() as connection:
                 new_data_df.to_sql(
                     name=table_name,
                     con=connection,

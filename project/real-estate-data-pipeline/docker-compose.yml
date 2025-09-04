@@ -19,6 +19,7 @@ services:
       - PYTHONPATH=/opt/airflow
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./utils:/opt/airflow/utils
       - airflow-db:/opt/airflow/
       - airflow-logs:/opt/airflow/logs
     entrypoint: /bin/bash 
@@ -33,6 +34,7 @@ services:
           --role Admin \
           --email admin@example.com \
           --password admin &&
+        airflow scheduler &
         airflow webserver
     restart: unless-stopped
     healthcheck:
